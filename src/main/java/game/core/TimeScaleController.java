@@ -5,21 +5,16 @@ package game.core;
  * integer level: zero is normal speed, positive values speed the game up
  * (1x faster per step), and negative values slow the game down (half,
  * third, quarter, and so on). For slow motion the battle screen simply
- * runs the simulation on a subset of render frames.
+ * runs the simulation on a subset of render frames. There is no fixed
+ * upper or lower limit on the timescale level.
  */
 public class TimeScaleController {
     private static final int INITIAL_TIMESCALE = 0;
-    private static final int MIN_TIMESCALE = -10;
-    private static final int MAX_TIMESCALE = 10;
 
     private int timescale;
-    private int minTimescale;
-    private int maxTimescale;
     private int renderFrameCount;
 
     public TimeScaleController() {
-        this.minTimescale = MIN_TIMESCALE;
-        this.maxTimescale = MAX_TIMESCALE;
         reset();
     }
 
@@ -32,23 +27,19 @@ public class TimeScaleController {
     }
 
     /**
-     * Makes the game one step faster, stopping at the maximum.
+     * Makes the game one step faster.
      */
     public void increase() {
-        if (timescale < maxTimescale) {
-            timescale++;
-            renderFrameCount = 0;
-        }
+        timescale++;
+        renderFrameCount = 0;
     }
 
     /**
-     * Makes the game one step slower, stopping at the minimum.
+     * Makes the game one step slower.
      */
     public void decrease() {
-        if (timescale > minTimescale) {
-            timescale--;
-            renderFrameCount = 0;
-        }
+        timescale--;
+        renderFrameCount = 0;
     }
 
     /**

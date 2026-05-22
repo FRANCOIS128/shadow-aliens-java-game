@@ -14,7 +14,6 @@ public class PauseInfoRenderer extends OverlayRenderer {
     private final InstructionsListSpec controlsList;
     private final Font timescaleFont;
     private final String timescaleText;
-    private final double timescaleX;
     private final double timescaleY;
 
     public PauseInfoRenderer(Properties gameProps) {
@@ -24,7 +23,6 @@ public class PauseInfoRenderer extends OverlayRenderer {
         this.timescaleFont = font();
         this.timescaleText = gameProps.getProperty("timescale.text");
         double[] timescalePos = GameDataUtils.parsePair(gameProps.getProperty("timescale.pos"));
-        this.timescaleX = timescalePos[0];
         this.timescaleY = timescalePos[1];
     }
 
@@ -35,6 +33,6 @@ public class PauseInfoRenderer extends OverlayRenderer {
     public void render(String displayedTimescaleText) {
         drawTitle(pausedTitle);
         drawInstructions(controlsList);
-        drawAt(timescaleFont, timescaleText + " " + displayedTimescaleText, timescaleX, timescaleY);
+        drawAtRight(timescaleFont, timescaleText + " " + displayedTimescaleText, 8, timescaleY);
     }
 }

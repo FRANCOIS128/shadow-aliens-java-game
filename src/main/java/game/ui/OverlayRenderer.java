@@ -70,6 +70,16 @@ public abstract class OverlayRenderer {
     }
 
     /**
+     * Draws text right-aligned against the window edge. The y coordinate
+     * still comes from the data file; only the x position is computed
+     * from the text width so longer values such as {@code 1/11} stay visible.
+     */
+    protected void drawAtRight(Font font, String text, double rightMargin, double y) {
+        double x = screenWidth - font.getWidth(text) - rightMargin;
+        font.drawString(text, x, y, textOptions);
+    }
+
+    /**
      * Renders a title spec at its configured size and position.
      */
     protected final void drawTitle(TitleSpec title) {
