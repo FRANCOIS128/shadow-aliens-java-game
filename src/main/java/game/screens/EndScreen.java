@@ -8,25 +8,35 @@ import game.core.ScreenState;
 import game.entities.Player;
 import game.ui.EndScreenRenderer;
 
+import java.util.List;
 import java.util.Properties;
 
 /**
  * The screen shown after the run is finished. The player can still move
  * the ship left and right, and Space starts a new battle. The win or lose
- * outcome is supplied at construction time, so the screen is fully
- * configured once and does not have to be mutated later.
+ * outcome, the final score, and the persistent leaderboard are all supplied
+ * at construction time, so the screen is fully configured once and does not
+ * have to be mutated later.
  */
 public class EndScreen implements GameScreen {
     private final Player player;
     private final EndState endState;
+    private final int finalScore;
+    private final boolean isNewHighScore;
+    private final List<Integer> highScores;
     private final EndScreenRenderer renderer;
 
     public EndScreen(Player player,
                      EndState endState,
-                     Properties gameProps,
-                     double screenWidth) {
+                     int finalScore,
+                     boolean isNewHighScore,
+                     List<Integer> highScores,
+                     Properties gameProps) {
         this.player = player;
         this.endState = endState;
+        this.finalScore = finalScore;
+        this.isNewHighScore = isNewHighScore;
+        this.highScores = highScores;
         this.renderer = new EndScreenRenderer(gameProps);
         player.reset();
     }
@@ -43,6 +53,6 @@ public class EndScreen implements GameScreen {
     @Override
     public void render() {
         player.render();
-        renderer.render(endState, 0);
+        renderer.render(endState, finalScore, isNewHighScore, highScores);
     }
 }

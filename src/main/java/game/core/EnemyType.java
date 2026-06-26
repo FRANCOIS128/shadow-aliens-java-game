@@ -2,6 +2,7 @@ package game.core;
 
 import game.data.EnemySpawnInfo;
 import game.data.GameDataUtils;
+import game.entities.enemy.BossEnemy;
 import game.entities.enemy.EnemyShip;
 import game.entities.enemy.RegularEnemy;
 import game.entities.enemy.ShootingEnemy;
@@ -36,6 +37,13 @@ public enum EnemyType {
         @Override
         public EnemyShip create(Properties gameProps, EnemySpawnInfo info) {
             return new ShootingEnemy(gameProps, info);
+        }
+    },
+    BOSS {
+        @Override
+        public EnemyShip create(Properties gameProps, EnemySpawnInfo info) {
+            double screenWidth = GameDataUtils.parseInt(gameProps, "window.width");
+            return new BossEnemy(gameProps, info, screenWidth);
         }
     };
 

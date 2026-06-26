@@ -45,11 +45,15 @@ public final class CollisionSystem {
             if (!player.getBoundingBox().intersects(enemy.getBoundingBox())) {
                 continue;
             }
-            explosions.add(new Explosion(gameProps, enemy.getX(), enemy.getY(), ExplosionSize.LARGE));
+            boolean destroyed = enemy.takeDamage(enemy.ramDamage());
+            explosions.add(new Explosion(gameProps, enemy.getX(), enemy.getY(),
+                    destroyed ? ExplosionSize.LARGE : ExplosionSize.SMALL));
             if (player.takeHit()) {
                 score.subtractPlayerHitScore();
             }
-            iterator.remove();
+            if (destroyed) {
+                iterator.remove();
+            }
         }
     }
 
@@ -116,9 +120,17 @@ public final class CollisionSystem {
                 if (!projectile.getBoundingBox().intersects(enemy.getBoundingBox())) {
                     continue;
                 }
-                explosions.add(new Explosion(gameProps, enemy.getX(), enemy.getY(), ExplosionSize.LARGE));
-                score.addDestroyedEnemyScore(enemy.getType());
-                enemyIterator.remove();
+                boolean destroyed = enemy.takeDamage(projectile.getDamage());
+                if (destroyed) {
+                    explosions.add(new Explosion(gameProps, enemy.getX(), enemy.getY(),
+                            ExplosionSize.LARGE));
+                    score.addDestroyedEnemyScore(enemy.getType());
+                    enemyIterator.remove();
+                } else {
+                    // A surviving (e.g. boss) enemy still flashes a small hit.
+                    explosions.add(new Explosion(gameProps, projectile.getX(), projectile.getY(),
+                            ExplosionSize.SMALL));
+                }
                 hit = true;
                 break;
             }

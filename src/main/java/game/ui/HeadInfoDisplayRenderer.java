@@ -25,6 +25,9 @@ public class HeadInfoDisplayRenderer extends OverlayRenderer {
     private final String scoreText;
     private final double scoreX;
     private final double scoreY;
+    private final String weaponText;
+    private final double weaponX;
+    private final double weaponY;
 
     public HeadInfoDisplayRenderer(Properties gameProps) {
         super(gameProps);
@@ -45,16 +48,22 @@ public class HeadInfoDisplayRenderer extends OverlayRenderer {
         double[] scorePos = GameDataUtils.parsePair(gameProps.getProperty("score.pos"));
         this.scoreX = scorePos[0];
         this.scoreY = scorePos[1];
+
+        this.weaponText = gameProps.getProperty("weapon.text", "WEAPON");
+        double[] weaponPos = GameDataUtils.parsePair(gameProps.getProperty("weapon.pos"));
+        this.weaponX = weaponPos[0];
+        this.weaponY = weaponPos[1];
     }
 
     /**
      * Draws the lives row, current wave number, and current score.
      * Argument order matches the UML: score first, then lives, then wave.
      */
-    public void render(int score, int remainingLives, int waveNumber) {
+    public void render(int score, int remainingLives, int waveNumber, String weaponName) {
         renderLives(remainingLives);
         drawAt(hudFont, waveText + " " + waveNumber, waveX, waveY);
         drawAt(hudFont, scoreText + " " + score, scoreX, scoreY);
+        drawAt(hudFont, weaponText + " " + weaponName, weaponX, weaponY);
     }
 
     private void renderLives(int remainingLives) {

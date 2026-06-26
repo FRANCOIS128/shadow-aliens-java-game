@@ -4,10 +4,12 @@ import bagel.Image;
 import bagel.Input;
 import bagel.Keys;
 
+import game.core.Weapon;
 import game.data.GameDataUtils;
 import game.entities.powerup.PowerUp;
 import game.entities.projectile.PlayerProjectile;
 
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -34,6 +36,7 @@ public class Player extends GameEntity {
     private boolean shieldActive;
     private boolean devInvincible;
     private PowerUp activePowerUp;
+    private Weapon currentWeapon;
 
     public Player(Properties gameProps, double screenWidth) {
         super(gameProps.getProperty("player.image"),
@@ -66,6 +69,7 @@ public class Player extends GameEntity {
         shieldActive = false;
         devInvincible = false;
         activePowerUp = null;
+        currentWeapon = Weapon.CANNON;
     }
 
     /**
@@ -127,10 +131,11 @@ public class Player extends GameEntity {
     }
 
     /**
-     * Creates a bullet at the centre of the ship.
+     * Fires the current weapon, producing one or more bullets at the
+     * centre of the ship.
      */
-    public PlayerProjectile shoot(Properties gameProps) {
-        return new PlayerProjectile(gameProps, getX(), getY());
+    public List<PlayerProjectile> shoot(Properties gameProps) {
+        return currentWeapon.fire(gameProps, getX(), getY());
     }
 
     public boolean canShoot() {
@@ -138,10 +143,23 @@ public class Player extends GameEntity {
     }
 
     /**
-     * Starts the current shooting cooldown.
+     * Starts the cooldown for the current weapon, derived from the base
+     * cooldown (which the cooldown power-up may have shortened).
      */
     public void startShootCooldown() {
-        cooldownRemaining = currentShootCooldown;
+        cooldownRemaining = currentWeapon.cooldownFrames(currentShootCooldown);
+    }
+
+    /**
+     * Switches the active weapon. The new weapon takes effect on the next
+     * shot.
+     */
+    public void selectWeapon(Weapon weapon) {
+        this.currentWeapon = weapon;
+    }
+
+    public Weapon getWeapon() {
+        return currentWeapon;
     }
 
     /**

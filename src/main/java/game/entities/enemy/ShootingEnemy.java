@@ -4,6 +4,7 @@ import game.data.EnemySpawnInfo;
 import game.data.GameDataUtils;
 import game.entities.projectile.EnemyProjectile;
 
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -29,7 +30,7 @@ public class ShootingEnemy extends EnemyShip {
     }
 
     @Override
-    public EnemyProjectile shoot(Properties gameProps) {
-        return new EnemyProjectile(gameProps, getX(), getY());
+    public List<EnemyProjectile> shoot(Properties gameProps) {
+        return List.of(new EnemyProjectile(gameProps, getX(), getY()));
     }
 }

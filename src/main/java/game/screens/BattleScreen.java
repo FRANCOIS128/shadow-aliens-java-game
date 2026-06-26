@@ -8,12 +8,14 @@ import game.core.ScoreManager;
 import game.core.ScreenState;
 import game.core.TimeScaleController;
 import game.core.WaveManager;
+import game.core.Weapon;
 import game.entities.Explosion;
 import game.entities.GameEntity;
 import game.entities.Player;
 import game.entities.enemy.EnemyShip;
 import game.entities.powerup.PowerUp;
 import game.entities.projectile.EnemyProjectile;
+import game.entities.projectile.HomingProjectile;
 import game.entities.projectile.PlayerProjectile;
 import game.ui.HeadInfoDisplayRenderer;
 
@@ -97,6 +99,7 @@ public class BattleScreen implements GameScreen {
         if (input.wasPressed(Keys.ESCAPE)) {
             return ScreenState.PAUSE;
         }
+        handleWeaponSelection(input);
         if (input.wasPressed(Keys.SPACE) && player.canShoot()) {
             wantToShoot = true;
         }
@@ -127,11 +130,19 @@ public class BattleScreen implements GameScreen {
         enemyProjectiles.forEach(EnemyProjectile::render);
         playerProjectiles.forEach(PlayerProjectile::render);
         hudRenderer.render(scoreManager.getScore(), player.getRemainingLives(),
-                waveManager.getCurrentWaveNumber());
+                waveManager.getCurrentWaveNumber(), player.getWeapon().displayName());
     }
 
     public String getDisplayedTimescaleText() {
         return timeScaleController.getDisplayedTimescaleText();
+    }
+
+    /**
+     * Gives the current score, used to seed the end screen and the
+     * persistent high-score leaderboard once the run finishes.
+     */
+    public int getScore() {
+        return scoreManager.getScore();
     }
 
     private ScreenState simulateOneFrame(Input input) {
@@ -170,12 +181,27 @@ public class BattleScreen implements GameScreen {
         player.handleHorizontalInput(input);
     }
 
+    /**
+     * Lets the player switch weapons with the 1–4 number keys.
+     */
+    private void handleWeaponSelection(Input input) {
+        Keys[] weaponKeys = {Keys.NUM_1, Keys.NUM_2, Keys.NUM_3, Keys.NUM_4};
+        for (int i = 0; i < weaponKeys.length; i++) {
+            if (input.wasPressed(weaponKeys[i])) {
+                Weapon weapon = Weapon.fromSelection(i + 1);
+                if (weapon != null) {
+                    player.selectWeapon(weapon);
+                }
+            }
+        }
+    }
+
     private void handleShoot() {
         if (!wantToShoot) {
             return;
         }
         if (player.canShoot()) {
-            playerProjectiles.add(player.shoot(gameProps));
+            playerProjectiles.addAll(player.shoot(gameProps));
             player.startShootCooldown();
         }
         wantToShoot = false;
@@ -189,11 +215,40 @@ public class BattleScreen implements GameScreen {
      */
     private void updateEntities() {
         updateEnemiesWithShooting();
+        steerHomingProjectiles();
         updateAndPrune(playerProjectiles);
         updateAndPrune(enemyProjectiles);
         updateAndPrune(powerUps);
         updateAndPrune(explosions);
         handleCollisions();
+    }
+
+    /**
+     * Points every homing missile at the closest live enemy before the
+     * generic movement step runs.
+     */
+    private void steerHomingProjectiles() {
+        for (PlayerProjectile projectile : playerProjectiles) {
+            if (projectile instanceof HomingProjectile homing) {
+                EnemyShip target = nearestEnemyTo(homing.getX(), homing.getY());
+                if (target != null) {
+                    homing.steerToward(target.getX(), target.getY());
+                }
+            }
+        }
+    }
+
+    private EnemyShip nearestEnemyTo(double x, double y) {
+        EnemyShip nearest = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (EnemyShip enemy : enemies) {
+            double distance = Math.hypot(enemy.getX() - x, enemy.getY() - y);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                nearest = enemy;
+            }
+        }
+        return nearest;
     }
 
     /**
@@ -224,7 +279,7 @@ public class BattleScreen implements GameScreen {
             EnemyShip enemy = iterator.next();
             enemy.update();
             if (enemy.canShoot(waveFrame)) {
-                enemyProjectiles.add(enemy.shoot(gameProps));
+                enemyProjectiles.addAll(enemy.shoot(gameProps));
             }
             if (enemy.shouldBeRemoved(screenHeight)) {
                 iterator.remove();

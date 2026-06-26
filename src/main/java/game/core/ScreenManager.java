@@ -2,6 +2,7 @@ package game.core;
 
 import bagel.Input;
 
+import game.data.HighScoreManager;
 import game.entities.Player;
 import game.screens.BattleScreen;
 import game.screens.EndScreen;
@@ -10,6 +11,7 @@ import game.screens.PauseScreen;
 import game.screens.StartScreen;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -28,6 +30,7 @@ public class ScreenManager {
     private final double screenWidth;
     private final double screenHeight;
     private final Map<ScreenState, GameScreen> screens;
+    private final HighScoreManager highScoreManager;
     private ScreenState currentState;
     private BattleScreen battleScreen;
 
@@ -36,6 +39,7 @@ public class ScreenManager {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         this.screens = new EnumMap<>(ScreenState.class);
+        this.highScoreManager = HighScoreManager.from(gameProps);
         this.currentState = ScreenState.START;
         buildScreens();
     }
@@ -84,8 +88,12 @@ public class ScreenManager {
     }
 
     private EndScreen createEndScreen(EndState endState) {
+        int finalScore = battleScreen.getScore();
+        boolean isNewHighScore = highScoreManager.submitScore(finalScore);
+        List<Integer> highScores = highScoreManager.getHighScores();
         Player endPlayer = new Player(gameProps, screenWidth);
-        return new EndScreen(endPlayer, endState, gameProps, screenWidth);
+        return new EndScreen(endPlayer, endState, finalScore, isNewHighScore,
+                highScores, gameProps);
     }
 
     private void restartGame() {

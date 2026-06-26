@@ -271,4 +271,18 @@ nbdist/
 # End of https://www.toptal.com/developers/gitignore/api/intellij,java,visualstudiocode,eclipse,netbeans,macos
 
 .idea/
+
+# Maven build output
+target/
+
+# maven-shade-plugin reduced pom artifact
+dependency-reduced-pom.xml
+
+# Runtime-generated high-score leaderboard
+highscores.txt
+
+# Keep the bundled bagel library and the project-local Maven repo so the
+# project builds without any manual jar installation step.
 !bagel-swen20003-2.0.0.jar
+!local-maven-repo/
+!local-maven-repo/**

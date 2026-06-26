@@ -6,6 +6,7 @@ import game.data.GameDataUtils;
 import game.entities.MovingEntity;
 import game.entities.projectile.EnemyProjectile;
 
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -21,15 +22,49 @@ import java.util.Properties;
 public abstract class EnemyShip extends MovingEntity {
     private final EnemyType type;
     private final int scoreValue;
+    private int health;
 
     protected EnemyShip(Properties gameProps, EnemySpawnInfo spawnInfo) {
+        this(gameProps, spawnInfo, 1);
+    }
+
+    protected EnemyShip(Properties gameProps, EnemySpawnInfo spawnInfo, int health) {
         super(imagePathFor(gameProps, spawnInfo.getType()),
                 spawnInfo.getPosX(),
                 0.0,
                 spawnInfo.getMovementSpeed());
         this.type = spawnInfo.getType();
         this.scoreValue = readScoreValue(gameProps, spawnInfo.getType());
+        this.health = Math.max(1, health);
         setY(-getImageHeight() / 2);
+    }
+
+    /**
+     * Applies damage from a player projectile.
+     *
+     * @return {@code true} if this hit destroyed the enemy
+     */
+    public boolean takeDamage(int amount) {
+        health -= Math.max(0, amount);
+        return isDestroyed();
+    }
+
+    public boolean isDestroyed() {
+        return health <= 0;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    /**
+     * Damage dealt to this enemy when the player ship rams it. By default
+     * a ram is fatal (equal to current health), which keeps the original
+     * one-hit behaviour for basic enemies; a boss overrides this to only
+     * take a chip so it survives contact.
+     */
+    public int ramDamage() {
+        return health;
     }
 
     /**
@@ -57,11 +92,12 @@ public abstract class EnemyShip extends MovingEntity {
     }
 
     /**
-     * Builds a projectile for enemies that can shoot. The default
+     * Builds the projectiles for enemies that can shoot. A simple shooter
+     * returns one bullet; a boss can return a whole fan. The default
      * implementation throws so non-shooting enemies catch the misuse
      * loudly rather than silently emit nothing.
      */
-    public EnemyProjectile shoot(Properties gameProps) {
+    public List<EnemyProjectile> shoot(Properties gameProps) {
         throw new UnsupportedOperationException(
                 "Enemy of type " + type + " cannot shoot projectiles");
     }

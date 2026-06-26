@@ -1,81 +1,222 @@
-# SWEN20003 Semester 1, 2026
-# Project 2b
 # Shadow Aliens
 
-## Running Instructions
-This project is intended to be opened in IntelliJ as a Maven project.
+[![CI](https://github.com/FRANCOIS128/shadow-aliens-java-game/actions/workflows/ci.yml/badge.svg)](https://github.com/FRANCOIS128/shadow-aliens-java-game/actions/workflows/ci.yml)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://adoptium.net/)
+[![Build](https://img.shields.io/badge/build-Maven-blue.svg)](https://maven.apache.org/)
+[![Tests](https://img.shields.io/badge/tests-JUnit%205-success.svg)](https://junit.org/junit5/)
 
-Suggested IntelliJ run configuration:
-- JDK: Java 25
-- Main class: `game.ShadowAliens`
-- Working directory: project root
-- VM options: leave empty to use the default `gameData.properties` in the working directory, or set
-  `-DgameData=/absolute/path/to/gameData.properties` to point at a different data file.
+A wave-based 2D space shooter written in Java on top of the
+[BAGEL](https://github.com/eleanor-em/bagel) game library. The player pilots a
+ship against successive waves of alien enemies, each with distinct movement and
+attack behaviour, while collecting power-ups and chasing a high score.
 
-When the program starts it loads the data file, opens the BAGEL window, and begins on the **Start
-Screen**. From there:
-- `SPACE` starts the game (Start → Battle, or End → Battle when restarting from a finished run).
-- `A` / `D` move the player ship.
-- `SPACE` shoots while in the Battle Screen.
-- `ESC` toggles between Battle and Pause.
-- `G` / `F` speed up / slow down the simulation (dev mode).
-- `I` toggles dev-mode invincibility.
-- `N` skips to the next wave; pressing `N` on the last wave ends the game in a win.
-- `R` resets the game back to the Start Screen.
+The project started as a university OOP assignment and has been extended into a
+maintainable, tested, and packaged application: clean object-oriented design,
+a data-driven content pipeline, a JUnit 5 test suite, continuous integration,
+and a single runnable fat jar.
+
+![Shadow Aliens gameplay](display.GIF)
+
+---
+
+## Highlights
+
+- **Polymorphic entity model** — a single update/render/prune loop drives every
+  enemy, projectile, power-up, and explosion, so new entity types slot in
+  without touching the game loop.
+- **Data-driven content** — every wave, enemy, power-up, position, timing, and
+  score value lives in `gameData.properties`. Designers can re-balance or add
+  content with zero code changes.
+- **Enum-as-factory** — `EnemyType` and `PowerUpType` build their own concrete
+  objects, removing `switch` statements from spawning logic.
+- **Screen state machine** — `StartScreen → BattleScreen → PauseScreen →
+  EndScreen` are decoupled behind a `GameScreen` interface and routed by a
+  `ScreenManager`.
+- **Deterministic dev-mode timescale** — speed up / slow down the entire
+  simulation by running the fixed-timestep simulation a variable number of
+  times per render frame.
+- **Persistent high-score leaderboard** — final scores are saved to disk and
+  the top results (plus a "new high score" banner) are shown on the end screen.
+- **Four switchable weapons** — cannon, three-way spread, rapid laser, and a
+  guided homing missile that smoothly steers toward the nearest enemy.
+- **Multi-hit boss fight** — a boss wave with a health pool, strafing movement,
+  and a downward bullet-fan attack.
+- **Tested & automated** — 49 unit tests covering the core logic, run on every
+  push via GitHub Actions, and a self-contained `java -jar` build.
+
+---
+
+## Tech stack
+
+| Area        | Choice                                             |
+|-------------|----------------------------------------------------|
+| Language    | Java 21 (LTS)                                       |
+| Game library| BAGEL (bundled), backed by LWJGL 3 / OpenGL / GLFW |
+| Build       | Maven, `maven-shade-plugin` for the runnable jar    |
+| Testing     | JUnit 5 (Jupiter)                                   |
+| CI          | GitHub Actions                                      |
+
+---
+
+## Architecture
+
+The codebase is organised into focused packages, each with a single
+responsibility:
+
+```
+game
+├── ShadowAliens          # thin entry point: load data, open window, delegate
+├── core                  # game systems (waves, scoring, collisions, timescale)
+├── screens               # GameScreen state machine + ScreenManager
+├── entities              # GameEntity hierarchy (player, enemies, projectiles…)
+│   ├── enemy             #   RegularEnemy / StrafingEnemy / ShootingEnemy
+│   ├── projectile        #   PlayerProjectile / EnemyProjectile
+│   └── powerup           #   Shield / Life / Cooldown / Engine power-ups
+├── ui                    # HUD and text-screen renderers
+└── data                  # property loading & spawn-info value objects
+```
+
+### Entity hierarchy
+
+```mermaid
+classDiagram
+    class GameEntity {
+        +update()
+        +render()
+        +shouldBeRemoved(screenHeight) bool
+    }
+    class MovingEntity
+    class Player
+    class EnemyShip
+    class Projectile
+    class PowerUp
+
+    GameEntity <|-- MovingEntity
+    GameEntity <|-- Player
+    MovingEntity <|-- EnemyShip
+    MovingEntity <|-- Projectile
+    MovingEntity <|-- PowerUp
+    EnemyShip <|-- RegularEnemy
+    EnemyShip <|-- StrafingEnemy
+    EnemyShip <|-- ShootingEnemy
+    EnemyShip <|-- BossEnemy
+    Projectile <|-- PlayerProjectile
+    Projectile <|-- EnemyProjectile
+    PlayerProjectile <|-- HomingProjectile
+    PowerUp <|-- ShieldPowerUp
+    PowerUp <|-- LifePowerUp
+    PowerUp <|-- CooldownPowerUp
+    PowerUp <|-- EnginePowerUp
+```
+
+### Design patterns used
+
+- **Template method** — `MovingEntity` defines the default fall-and-prune
+  behaviour; subclasses override only what differs (e.g. `PlayerProjectile`
+  moves up, `Explosion` is removed by timer).
+- **Strategy / polymorphism** — `PowerUp.applyTo(Player)` / `expire(Player)`
+  replace a type `switch` with per-type behaviour.
+- **Factory (enum-as-factory)** — `EnemyType` / `PowerUpType` construct the
+  right subclass for a given data entry.
+- **State** — `GameScreen` implementations return the next `ScreenState`, and
+  `ScreenManager` performs the transition.
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- JDK 21+
+- Maven 3.9+
+
+The BAGEL library is bundled and pre-installed into a project-local Maven
+repository (`local-maven-repo/`), so **no manual jar installation is required**.
+
+### Run from source
+
+```bash
+mvn compile exec:java -Dexec.mainClass=game.ShadowAliens
+```
+
+or simply run `game.ShadowAliens` from your IDE with the working directory set
+to the project root.
+
+> On macOS, LWJGL needs the JVM flag `-XstartOnFirstThread`.
+
+### Build a runnable jar
+
+```bash
+mvn clean package
+java -jar target/shadow-aliens.jar   # run from the project root so res/ and gameData.properties resolve
+```
+
+### Run the tests
+
+```bash
+mvn test
+```
+
+### Use a custom data file
+
+```bash
+java -DgameData=/absolute/path/to/gameData.properties -jar target/shadow-aliens.jar
+```
 
 If the data file is missing or unreadable the program prints
-`Error with {file path}` and exits with status `-1`, as required by the spec.
+`Error with {file path}` and exits with status `-1`.
 
 ---
 
-## Assumptions
-- None.
+## Controls
+
+| Key        | Action                                             |
+|------------|----------------------------------------------------|
+| `SPACE`    | Start game / shoot / play again                    |
+| `A` / `D`  | Move left / right                                  |
+| `1`–`4`    | Switch weapon (cannon / spread / laser / homing)   |
+| `ESC`      | Pause / unpause                                    |
+| `G` / `F`  | Speed up / slow down the simulation (dev mode)     |
+| `I`        | Toggle invincibility (dev mode)                    |
+| `N`        | Skip to next wave (dev mode)                        |
+| `R`        | Restart back to the Start Screen                   |
 
 ---
 
-## AI Statement
-I used ChatGPT and Cursor's AI features as supporting tools during this project. AI was used to:
-- clarify ambiguous parts of the spec (e.g. last-wave behaviour for the `N` dev key, replacement
-  semantics for active power-ups);
-- explain BAGEL APIs I had not used before (`Image.draw`, `Font.drawString`,
-  `Window.setClearColour`, `Rectangle.intersects`);
-- discuss design trade-offs between a static and an instance `CollisionSystem`, and between using
-  a `Map<ScreenState, GameScreen>` versus an `if/else` ladder.
+## Testing
 
-I did **not** use AI to generate complete classes or full implementations. Every class shown in
-the UML, every gameplay rule (movement, collisions, scoring, power-ups, dev mode, wave
-management) and all glue code was designed and written by me. Where AI suggested an idea, I
-rewrote it in my own words and only kept it after confirming it matched the spec. I take full
-responsibility for the submitted work.
+The suite focuses on the pure game logic that does not require a graphics
+context, so it runs headless in CI:
 
-## Code References
-- Google Java Style Guide — used for naming and formatting conventions:
-  https://google.github.io/styleguide/javaguide.html
-- BAGEL library.
+- `ScoreManager` — scoring rules and the zero-floor hit penalty
+- `TimeScaleController` — speed multipliers and slow-motion frame skipping
+- `WaveManager` / `Wave` — wave progression and completion
+- `GameDataLoader` — property parsing and arrival-time sorting
+- `HighScoreManager` — leaderboard sorting, capping, persistence, corrupt-file recovery
+- `Weapon` — per-weapon fire-rate rules and number-key selection mapping
+- `GameDataUtils`, `EnemyType`, `PowerUpType`, spawn-info value objects
+
+```bash
+mvn test   # 49 tests
+```
 
 ---
 
-## Design Report
+## Roadmap
 
-### 1. Extension: how the design grew from Project 1
+- [x] Persistent local high-score leaderboard
+- [x] Multiple weapon types (spread / laser / homing projectiles)
+- [x] Boss wave with a multi-hit health pool and a bullet-fan attack
+- [ ] On-screen boss health bar
+- [ ] Sound effects and background music
+- [ ] Endless mode with procedurally generated waves
 
-The main extension from Project 1 was turning a small single-screen game into a game with multiple screens, waves, enemy types, power-ups, scoring, explosions, and dev controls. The code change that made this manageable was not one large new method, but a set of smaller classes where each object owns the behaviour that belongs to it. `BattleScreen` still coordinates the frame, but it is no longer responsible for every rule.
+---
 
-The clearest example is the entity hierarchy. `GameEntity` defines the common `update()`, `render()`, bounding-box, and `shouldBeRemoved(double screenHeight)` interface. `MovingEntity` supplies the normal falling behaviour for enemies, enemy projectiles, and power-ups. Subclasses only override the part that is different: `PlayerProjectile` moves upward and is removed above the screen, while `Explosion` is removed by timer. Because of this, `BattleScreen.updateAndPrune(...)` can update and remove several entity lists using one generic loop instead of repeating the same iterator code for every object type.
+## Acknowledgements
 
-Power-ups use the same OOP idea. `PowerUp` defines `applyTo(Player)` and `expire(Player)`, and concrete classes such as `ShieldPowerUp`, `EnginePowerUp`, `CooldownPowerUp`, and `LifePowerUp` contain their own effects. `Player.activatePowerUp(...)` also keeps the single active power-up rule inside `Player`, so `CollisionSystem` only needs to detect collection and delegate the effect. This keeps collision code separate from player-state rules.
+- BAGEL game library (University of Melbourne, SWEN20003).
+- Google Java Style Guide for naming and formatting conventions.
 
-I also used enum-as-factory in `EnemyType` and `PowerUpType`. `Wave` reads spawn information and asks the enum value to create the correct object, rather than switching over constructor details itself. This links directly to extensibility: adding another enemy or power-up would mainly require a new subclass and one new enum case, not changes spread through the battle loop.
-
-Screen flow was separated through the `GameScreen` interface and `ScreenManager`. `StartScreen`, `BattleScreen`, `PauseScreen`, and `EndScreen` each decide their own input behaviour and return the next `ScreenState`. This avoided placing all state transitions in `ShadowAliens`, which now remains a thin entry point.
-
-### 2. Outcome: what this design makes easier, and what it still costs
-
-The final code is easier to extend because most likely changes are local. A new enemy type would go into a new `EnemyShip` subclass and `EnemyType`; a new power-up would go into a new `PowerUp` subclass and `PowerUpType`; a new text screen would reuse the existing renderer helpers. The main frame update would not need to be rewritten because it already works through shared base types and interfaces.
-
-The main cost is that there are more classes than in Project 1, so the reader has to follow delegation between `BattleScreen`, `WaveManager`, `CollisionSystem`, `Player`, and the entity subclasses. I think that cost is justified because each class has a narrower responsibility. `ScoreManager` only handles score, `WaveManager` only handles spawning and wave progress, and `TimeScaleController` isolates the dev-mode speed calculation.
-
-There are still some compromises. Timescale has to stay partly in `BattleScreen` because it affects the whole simulation, not one entity. The data file is also still string-based, so `GameDataUtils` reduces repeated parsing but does not make property keys type-safe. If the project became much larger, I would introduce a typed configuration object. For this assignment, the design is modular without being over-engineered, and future features can be added without turning the main loop into a long chain of special cases.
-
-## Design Report References
-None.
+This project began as SWEN20003 Project 2 and was subsequently extended for a
+personal portfolio.
